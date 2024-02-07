@@ -85,7 +85,14 @@ export const setCartCookie = async (
 			.execute()
 	}
 
-	cookies.set('cart', Buffer.from(JSON.stringify(cart) + 'cicciogamer').toString('base64url'), {
+	let jwtToken = jwt.sign({
+		data: JSON.stringify(cart)
+	}, privateKey, {
+		algorithm: 'RS256',
+		expiresIn: '1h'
+	})
+
+	cookies.set('cart', Buffer.from(jwtToken).toString('base64url'), {
 		path: '/',
 		secure: false,
 		httpOnly: true,
@@ -104,11 +111,9 @@ export const getCartCookie = (cookies: Cookies) => {
 
 	let cartContent: CartCookieItem[] = []
 	try {
-		let decoded = Buffer.from(cart, 'base64url').toString()
-			
-		if (decoded.endsWith('cicciogamer')) {
-			cartContent = JSON.parse(decoded.replace('cicciogamer', ''))
-		}
+		let jwtToken = jwt.verify(Buffer.from(cart, 'base64url').toString(), publicKey)
+
+		cartContent = JSON.parse(jwtToken['data'])
 	} catch {
 		cartContent = []
 	}

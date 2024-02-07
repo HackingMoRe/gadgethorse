@@ -36,3 +36,41 @@ index ea67558..f8a3ae8 100644
  		cartContent = []
  	}
 ```
+
+A more robust fix should use a [JWT](https://jwt.io/):
+```diff
+diff --git a/src/src/lib/_api/utils.ts b/src/src/lib/_api/utils.ts
+index ea67558..3d99721 100644
+--- a/src/src/lib/_api/utils.ts
++++ b/src/src/lib/_api/utils.ts
+@@ -85,7 +85,14 @@ export const setCartCookie = async (
+ 			.execute()
+ 	}
+ 
+-	cookies.set('cart', Buffer.from(JSON.stringify(cart)).toString('base64url'), {
++	let jwtToken = jwt.sign({
++		data: JSON.stringify(cart)
++	}, privateKey, {
++		algorithm: 'RS256',
++		expiresIn: '1h'
++	})
++
++	cookies.set('cart', Buffer.from(jwtToken).toString('base64url'), {
+ 		path: '/',
+ 		secure: false,
+ 		httpOnly: true,
+@@ -102,9 +109,11 @@ export const setCartCookie = async (
+ export const getCartCookie = (cookies: Cookies) => {
+ 	const cart = cookies.get('cart') ?? ''
+ 
+-	let cartContent: CartCookieItem[]
++	let cartContent: CartCookieItem[] = []
+ 	try {
+-		cartContent = JSON.parse(Buffer.from(cart, 'base64url').toString())
++		let jwtToken = jwt.verify(Buffer.from(cart, 'base64url').toString(), publicKey)
++
++		cartContent = JSON.parse(jwtToken['data'])
+ 	} catch {
+ 		cartContent = []
+ 	}
+```
